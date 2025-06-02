@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Admin Login</title>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+</head>
+<body>
+    <h1>Test Admin Login</h1>
+    <div>
+        <input type="email" id="email" placeholder="Email" value="admin@codenotes.com">
+        <input type="password" id="password" placeholder="Password" value="admin123">
+        <button onclick="testLogin()">Test Login</button>
+    </div>
+    <div id="result"></div>
+
+    <script>
+        async function testLogin() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+            const resultDiv = document.getElementById('result');
+            
+            try {
+                console.log('Testing login with:', { email, password });
+                
+                const response = await axios.post('http://localhost:5000/api/auth/login', {
+                    email,
+                    password
+                });
+                
+                console.log('Login successful:', response.data);
+                resultDiv.innerHTML = `<h3 style="color: green;">Login Successful!</h3>
+                    <p>User: ${response.data.user.username}</p>
+                    <p>Role: ${response.data.user.role}</p>
+                    <p>Token: ${response.data.token.substring(0, 50)}...</p>`;
+                    
+            } catch (error) {
+                console.error('Login failed:', error);
+                resultDiv.innerHTML = `<h3 style="color: red;">Login Failed!</h3>
+                    <p>Error: ${error.response?.data?.message || error.message}</p>
+                    <p>Status: ${error.response?.status}</p>`;
+            }
+        }
+    </script>
+</body>
+</html>
