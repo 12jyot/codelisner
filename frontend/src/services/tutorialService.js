@@ -5,11 +5,57 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://codenotes-backend.
 // Create axios instance with default config
 const api = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: 30000, // Increased timeout for Render cold starts
   headers: {
     'Content-Type': 'application/json',
   },
 });
+
+// Fallback data for when backend is unavailable
+const fallbackTutorials = [
+  {
+    _id: 'fallback-1',
+    title: 'JavaScript Fundamentals',
+    slug: 'javascript-fundamentals',
+    category: 'JavaScript',
+    excerpt: 'Learn the basics of JavaScript programming language.',
+    difficulty: 'Beginner',
+    estimatedReadTime: 10,
+    isPublished: true,
+    views: 1234,
+    likes: 89,
+    createdAt: new Date().toISOString(),
+    author: { username: 'CodeNotes Team' }
+  },
+  {
+    _id: 'fallback-2',
+    title: 'Python for Beginners',
+    slug: 'python-for-beginners',
+    category: 'Python',
+    excerpt: 'Start your Python journey with this comprehensive guide.',
+    difficulty: 'Beginner',
+    estimatedReadTime: 15,
+    isPublished: true,
+    views: 987,
+    likes: 67,
+    createdAt: new Date().toISOString(),
+    author: { username: 'CodeNotes Team' }
+  },
+  {
+    _id: 'fallback-3',
+    title: 'HTML5 Semantic Elements',
+    slug: 'html5-semantic-elements',
+    category: 'HTML',
+    excerpt: 'Understanding modern HTML5 semantic elements.',
+    difficulty: 'Beginner',
+    estimatedReadTime: 8,
+    isPublished: true,
+    views: 756,
+    likes: 45,
+    createdAt: new Date().toISOString(),
+    author: { username: 'CodeNotes Team' }
+  }
+];
 
 // Add request interceptor to include auth token
 api.interceptors.request.use(
@@ -42,8 +88,9 @@ export const tutorialService = {
   // Public API methods
   async getAllTutorials(params = {}) {
     try {
+      console.log('🔄 Fetching tutorials from backend...');
       const queryParams = new URLSearchParams();
-      
+
       Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
           queryParams.append(key, value);
@@ -51,9 +98,27 @@ export const tutorialService = {
       });
 
       const response = await api.get(`/tutorials?${queryParams}`);
+      console.log('✅ Successfully fetched tutorials from backend');
       return response.data;
     } catch (error) {
-      console.error('Failed to fetch tutorials:', error);
+      console.error('❌ Failed to fetch tutorials from backend:', error.message);
+
+      // Check if it's a network/timeout error
+      if (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR' || !error.response) {
+        console.log('🔄 Backend unavailable, using fallback data...');
+
+        // Return fallback data with same structure as backend
+        return {
+          tutorials: fallbackTutorials,
+          pagination: {
+            current: 1,
+            pages: 1,
+            total: fallbackTutorials.length
+          },
+          message: 'Backend is starting up. Showing sample tutorials.'
+        };
+      }
+
       throw error;
     }
   },
@@ -64,7 +129,33 @@ export const tutorialService = {
       return response.data;
     } catch (error) {
       console.error('Failed to fetch tutorial:', error);
+
+      // Check if it's a fallback tutorial
+      const fallbackTutorial = fallbackTutorials.find(t => t.slug === slug);
+      if (fallbackTutorial && (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR' || !error.response)) {
+        console.log('🔄 Using fallback tutorial data...');
+        return {
+          tutorial: {
+            ...fallbackTutorial,
+            content: `# ${fallbackTutorial.title}\n\nThis is a sample tutorial. The backend is starting up.\n\n## Getting Started\n\nThis tutorial will guide you through the basics.\n\n## Next Steps\n\nContinue learning with more tutorials!`
+          }
+        };
+      }
+
       throw error;
+    }
+  },
+
+  // Wake up backend function
+  async wakeUpBackend() {
+    try {
+      console.log('🔄 Waking up backend...');
+      const response = await axios.get(`${API_BASE_URL}/health`, { timeout: 5000 });
+      console.log('✅ Backend is awake!');
+      return true;
+    } catch (error) {
+      console.log('⏳ Backend is still starting...');
+      return false;
     }
   },
 

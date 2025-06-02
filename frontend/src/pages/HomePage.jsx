@@ -13,6 +13,7 @@ import {
   AlertCircle
 } from 'lucide-react';
 import { tutorialService } from '../services/tutorialService';
+import BackendStatus from '../components/BackendStatus';
 
 
 const HomePage = () => {
@@ -20,6 +21,7 @@ const HomePage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [showBackendStatus, setShowBackendStatus] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -36,7 +38,14 @@ const HomePage = () => {
         setCategories(categoriesData.categories || []);
       } catch (error) {
         console.error('Failed to fetch data:', error);
-        setError('Failed to load content. Please try again later.');
+
+        // Check if it's a network error (backend unavailable)
+        if (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR' || !error.response) {
+          setShowBackendStatus(true);
+        } else {
+          setError('Failed to load content. Please try again later.');
+        }
+
         // Set fallback data
         setFeaturedTutorials([]);
         setCategories([]);
@@ -80,6 +89,16 @@ const HomePage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950">
+      {/* Backend Status Modal */}
+      {showBackendStatus && (
+        <BackendStatus
+          onBackendReady={() => {
+            setShowBackendStatus(false);
+            window.location.reload(); // Reload to fetch fresh data
+          }}
+        />
+      )}
+
       {/* Enhanced Hero Section - Following Javatpoint Pattern */}
       <section className="relative overflow-hidden py-12 sm:py-16 lg:py-24 xl:py-32">
         {/* Background Elements */}

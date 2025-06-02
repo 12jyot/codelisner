@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import { Search, Filter, Clock, Eye, Star, BookOpen, AlertCircle } from 'lucide-react';
 import { tutorialService } from '../services/tutorialService';
+import BackendStatus from '../components/BackendStatus';
 
 const TutorialsPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -9,6 +10,8 @@ const TutorialsPage = () => {
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
   const [pagination, setPagination] = useState({});
+  const [showBackendStatus, setShowBackendStatus] = useState(false);
+  const [backendMessage, setBackendMessage] = useState('');
 
   const currentCategory = searchParams.get('category') || 'all';
   const currentSearch = searchParams.get('search') || '';
@@ -42,10 +45,22 @@ const TutorialsPage = () => {
       const data = await tutorialService.getAllTutorials(params);
       setTutorials(data.tutorials || []);
       setPagination(data.pagination || {});
+
+      // Check if we're using fallback data
+      if (data.message && data.message.includes('Backend is starting')) {
+        setBackendMessage(data.message);
+        setShowBackendStatus(true);
+      }
     } catch (error) {
       console.error('Failed to fetch tutorials:', error);
-      setTutorials([]);
-      setPagination({});
+
+      // Check if it's a network error (backend unavailable)
+      if (error.code === 'ECONNABORTED' || error.code === 'NETWORK_ERROR' || !error.response) {
+        setShowBackendStatus(true);
+      } else {
+        setTutorials([]);
+        setPagination({});
+      }
     } finally {
       setLoading(false);
     }
@@ -93,7 +108,29 @@ const TutorialsPage = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50 dark:from-gray-900 dark:via-slate-900 dark:to-indigo-950 py-8">
+      {/* Backend Status Modal */}
+      {showBackendStatus && (
+        <BackendStatus
+          onBackendReady={() => {
+            setShowBackendStatus(false);
+            fetchTutorials();
+          }}
+        />
+      )}
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Backend Status Banner */}
+        {backendMessage && (
+          <div className="mb-6 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-700 rounded-lg p-4">
+            <div className="flex items-center">
+              <AlertCircle className="h-5 w-5 text-yellow-600 dark:text-yellow-400 mr-3" />
+              <p className="text-yellow-800 dark:text-yellow-200 font-medium">
+                {backendMessage}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Enhanced Header */}
         <div className="mb-12 text-center">
           <div className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-100 to-indigo-100 dark:from-blue-900/30 dark:to-indigo-900/30 rounded-full text-sm font-medium text-blue-800 dark:text-blue-300 mb-6 border border-blue-200/50 dark:border-blue-700/50">
