@@ -149,7 +149,7 @@ tutorialSchema.virtual('url').get(function() {
 
 // Pre-save middleware to generate slug
 tutorialSchema.pre('save', function(next) {
-  if (this.isModified('title') && !this.slug) {
+  if (this.isModified('title') || !this.slug) {
     this.slug = this.title
       .toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')

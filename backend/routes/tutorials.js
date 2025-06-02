@@ -1,15 +1,19 @@
 import express from 'express';
 import { body, validationResult, query } from 'express-validator';
+import mongoose from 'mongoose';
 import Tutorial from '../models/Tutorial.js';
 import { authenticateToken, requireAdmin, optionalAuth } from '../middleware/auth.js';
+
+// Create a static demo admin ObjectId
+const DEMO_ADMIN_ID = new mongoose.Types.ObjectId();
 
 // Mock authentication middleware for demo purposes
 const mockAuthMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
   if (authHeader && authHeader.startsWith('Bearer mock-jwt-token-')) {
-    // Mock admin user for demo
+    // Mock admin user for demo with valid ObjectId
     req.user = {
-      _id: 'demo-admin-id',
+      _id: DEMO_ADMIN_ID,
       username: 'admin',
       email: 'admin@codenotes.com',
       role: 'admin'
@@ -281,17 +285,41 @@ router.post('/', mockAuthMiddleware, authenticateToken, requireAdmin, [
   body('content').notEmpty().withMessage('Content is required')
 ], async (req, res) => {
   try {
+    console.log('Creating tutorial with data:', {
+      title: req.body.title,
+      category: req.body.category,
+      contentLength: req.body.content?.length,
+      user: req.user
+    });
+
     const errors = validationResult(req);
     if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+      console.log('Validation errors:', errors.array());
+      return res.status(400).json({
+        message: 'Validation failed',
+        errors: errors.array()
+      });
     }
+
+    // Ensure we have a valid author ID
+    const authorId = req.user.userId || req.user._id || DEMO_ADMIN_ID;
+
+    // Generate slug if not provided
+    const slug = req.body.slug || req.body.title
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/(^-|-$)/g, '');
 
     const tutorial = new Tutorial({
       ...req.body,
-      author: req.user.userId || req.user._id
+      author: authorId,
+      slug: slug
     });
 
+    console.log('Saving tutorial to database...');
     await tutorial.save();
+    console.log('Tutorial saved successfully with ID:', tutorial._id);
+
     await tutorial.populate('author', 'username');
 
     res.status(201).json({
@@ -301,13 +329,42 @@ router.post('/', mockAuthMiddleware, authenticateToken, requireAdmin, [
 
   } catch (error) {
     console.error('Create tutorial error:', error);
-    res.status(500).json({ message: 'Server error' });
+
+    // Provide more specific error messages
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: Object.values(error.errors).map(err => ({
+          field: err.path,
+          message: err.message
+        }))
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: 'A tutorial with this title already exists. Please choose a different title.'
+      });
+    }
+
+    res.status(500).json({
+      message: 'Failed to create tutorial. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 
 // Update tutorial (admin only)
 router.patch('/:id', mockAuthMiddleware, authenticateToken, requireAdmin, async (req, res) => {
   try {
+    console.log('Updating tutorial with ID:', req.params.id);
+    console.log('Update data:', {
+      title: req.body.title,
+      category: req.body.category,
+      contentLength: req.body.content?.length,
+      user: req.user
+    });
+
     const tutorial = await Tutorial.findByIdAndUpdate(
       req.params.id,
       req.body,
@@ -315,9 +372,11 @@ router.patch('/:id', mockAuthMiddleware, authenticateToken, requireAdmin, async 
     ).populate('author', 'username');
 
     if (!tutorial) {
+      console.log('Tutorial not found with ID:', req.params.id);
       return res.status(404).json({ message: 'Tutorial not found' });
     }
 
+    console.log('Tutorial updated successfully with ID:', tutorial._id);
     res.json({
       message: 'Tutorial updated successfully',
       tutorial
@@ -325,7 +384,34 @@ router.patch('/:id', mockAuthMiddleware, authenticateToken, requireAdmin, async 
 
   } catch (error) {
     console.error('Update tutorial error:', error);
-    res.status(500).json({ message: 'Server error' });
+
+    // Provide more specific error messages
+    if (error.name === 'ValidationError') {
+      return res.status(400).json({
+        message: 'Validation error',
+        errors: Object.values(error.errors).map(err => ({
+          field: err.path,
+          message: err.message
+        }))
+      });
+    }
+
+    if (error.code === 11000) {
+      return res.status(400).json({
+        message: 'A tutorial with this title already exists. Please choose a different title.'
+      });
+    }
+
+    if (error.name === 'CastError') {
+      return res.status(400).json({
+        message: 'Invalid tutorial ID format'
+      });
+    }
+
+    res.status(500).json({
+      message: 'Failed to update tutorial. Please try again.',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
   }
 });
 

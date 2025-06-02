@@ -103,8 +103,14 @@ const TutorialEditor = () => {
     try {
       setSaving(true);
 
+      // Validation
       if (!tutorial.title.trim()) {
         alert('Title is required');
+        return;
+      }
+
+      if (!tutorial.category) {
+        alert('Category is required');
         return;
       }
 
@@ -122,26 +128,76 @@ const TutorialEditor = () => {
       const tutorialData = {
         ...tutorial,
         content: finalContent,
-        slug: tutorial.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '')
+        slug: tutorial.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, ''),
+        // Ensure required fields are present
+        difficulty: tutorial.difficulty || 'Beginner',
+        estimatedReadTime: tutorial.estimatedReadTime || 5,
+        isPublished: tutorial.isPublished || false,
+        tags: tutorial.tags || []
       };
 
+      console.log('Saving tutorial with data:', {
+        title: tutorialData.title,
+        category: tutorialData.category,
+        contentLength: tutorialData.content?.length,
+        isEditing
+      });
+
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Authentication required. Please log in again.');
+        return;
+      }
+
       const headers = {
-        'Authorization': `Bearer ${localStorage.getItem('token')}`,
+        'Authorization': `Bearer ${token}`,
         'Content-Type': 'application/json'
       };
 
+      let response;
       if (isEditing) {
-        await axios.patch(`http://localhost:5000/api/tutorials/${id}`, tutorialData, { headers });
+        console.log('Updating tutorial with ID:', id);
+        response = await axios.patch(`http://localhost:5000/api/tutorials/${id}`, tutorialData, { headers });
         alert('Tutorial updated successfully!');
       } else {
-        await axios.post('http://localhost:5000/api/tutorials', tutorialData, { headers });
+        console.log('Creating new tutorial');
+        response = await axios.post('http://localhost:5000/api/tutorials', tutorialData, { headers });
         alert('Tutorial created successfully!');
       }
 
+      console.log('Save response:', response.data);
       navigate('/admin/tutorials');
     } catch (error) {
       console.error('Failed to save tutorial:', error);
-      alert('Failed to save tutorial. Please try again.');
+
+      // Handle different types of errors
+      if (error.response) {
+        const { status, data } = error.response;
+        console.error('Error response:', data);
+
+        if (status === 400) {
+          if (data.errors && Array.isArray(data.errors)) {
+            const errorMessages = data.errors.map(err => err.message || err.msg).join('\n');
+            alert(`Validation Error:\n${errorMessages}`);
+          } else {
+            alert(data.message || 'Validation error. Please check your input.');
+          }
+        } else if (status === 401) {
+          alert('Authentication failed. Please log in again.');
+        } else if (status === 403) {
+          alert('You do not have permission to perform this action.');
+        } else if (status === 404) {
+          alert('Tutorial not found.');
+        } else {
+          alert(data.message || 'Failed to save tutorial. Please try again.');
+        }
+      } else if (error.request) {
+        console.error('Network error:', error.request);
+        alert('Network error. Please check your connection and try again.');
+      } else {
+        console.error('Error:', error.message);
+        alert('An unexpected error occurred. Please try again.');
+      }
     } finally {
       setSaving(false);
     }
