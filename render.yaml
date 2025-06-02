@@ -1,0 +1,32 @@
+services:
+  - type: web
+    name: codenotes-backend
+    env: node
+    plan: free
+    buildCommand: cd backend && npm install
+    startCommand: cd backend && npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: FRONTEND_URL
+        value: https://your-frontend-domain.com
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JUDGE0_API_URL
+        value: local
+      - key: JUDGE0_API_KEY
+        value: local_execution
+      - key: CLOUDINARY_CLOUD_NAME
+        sync: false
+      - key: CLOUDINARY_API_KEY
+        sync: false
+      - key: CLOUDINARY_API_SECRET
+        sync: false
+      - key: ADMIN_EMAIL
+        value: admin@codenotes.com
+      - key: ADMIN_PASSWORD
+        value: admin123
