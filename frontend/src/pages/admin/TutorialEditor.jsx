@@ -1,6 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import axios from 'axios';
+
+// API Base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://codenotes-backend.onrender.com/api';
 import {
   ArrowLeft,
   Save,
@@ -78,7 +81,7 @@ const TutorialEditor = () => {
   const fetchTutorial = async () => {
     try {
       setLoading(true);
-      const response = await axios.get(`http://localhost:5000/api/tutorials/admin/${id}`, {
+      const response = await axios.get(`${API_BASE_URL}/tutorials/admin/${id}`, {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('token')}`
         }
@@ -157,11 +160,11 @@ const TutorialEditor = () => {
       let response;
       if (isEditing) {
         console.log('Updating tutorial with ID:', id);
-        response = await axios.patch(`http://localhost:5000/api/tutorials/${id}`, tutorialData, { headers });
+        response = await axios.patch(`${API_BASE_URL}/tutorials/${id}`, tutorialData, { headers });
         alert('Tutorial updated successfully!');
       } else {
         console.log('Creating new tutorial');
-        response = await axios.post('http://localhost:5000/api/tutorials', tutorialData, { headers });
+        response = await axios.post(`${API_BASE_URL}/tutorials`, tutorialData, { headers });
         alert('Tutorial created successfully!');
       }
 
@@ -304,7 +307,7 @@ const TutorialEditor = () => {
         token: localStorage.getItem('token')?.substring(0, 20) + '...'
       });
 
-      const response = await axios.post('http://localhost:5000/api/upload/image', formData, {
+      const response = await axios.post(`${API_BASE_URL}/upload/image`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${localStorage.getItem('token')}`

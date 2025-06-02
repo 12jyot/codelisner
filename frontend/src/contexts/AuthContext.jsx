@@ -1,6 +1,9 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import axios from 'axios';
 
+// API Base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://codenotes-backend.onrender.com/api';
+
 const AuthContext = createContext();
 
 export const useAuth = () => {
@@ -53,7 +56,7 @@ export const AuthProvider = ({ children }) => {
           } else {
             // Try real backend authentication
             console.log('AuthContext - Making /api/auth/me request...');
-            const response = await axios.get('http://localhost:5000/api/auth/me');
+            const response = await axios.get(`${API_BASE_URL}/auth/me`);
             console.log('AuthContext - /api/auth/me response:', response.data);
             setUser(response.data.user);
           }
@@ -75,7 +78,7 @@ export const AuthProvider = ({ children }) => {
   const login = async (email, password) => {
     try {
       // First try the real backend
-      const response = await axios.post('http://localhost:5000/api/auth/login', {
+      const response = await axios.post(`${API_BASE_URL}/auth/login`, {
         email,
         password
       });
@@ -134,7 +137,7 @@ export const AuthProvider = ({ children }) => {
 
   const register = async (username, email, password) => {
     try {
-      const response = await axios.post('http://localhost:5000/api/auth/register', {
+      const response = await axios.post(`${API_BASE_URL}/auth/register`, {
         username,
         email,
         password

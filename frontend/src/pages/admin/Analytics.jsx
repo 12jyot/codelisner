@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+
+// API Base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://codenotes-backend.onrender.com/api';
 import { 
   TrendingUp, 
   Users, 
@@ -40,7 +43,7 @@ const Analytics = () => {
     try {
       setLoading(true);
       // Note: This endpoint needs to be created in the backend
-      const response = await axios.get(`http://localhost:5000/api/admin/analytics?range=${timeRange}`);
+      const response = await axios.get(`${API_BASE_URL}/admin/analytics?range=${timeRange}`);
       setAnalytics(response.data);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);

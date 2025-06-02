@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, Link, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import { useAuth } from '../../contexts/AuthContext';
+
+// API Base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://codenotes-backend.onrender.com/api';
 import {
   LayoutDashboard,
   BookOpen,
@@ -289,7 +292,7 @@ const DashboardOverview = () => {
   const fetchAnalytics = async () => {
     try {
       setLoading(true);
-      const response = await axios.get('http://localhost:5000/api/admin/analytics');
+      const response = await axios.get(`${API_BASE_URL}/admin/analytics`);
       setAnalytics(response.data);
     } catch (error) {
       console.error('Failed to fetch analytics:', error);

@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import axios from 'axios';
+
+// API Base URL from environment variables
+const API_BASE_URL = import.meta.env.VITE_API_URL || 'https://codenotes-backend.onrender.com/api';
 import {
   Search,
   Filter,
@@ -63,7 +66,7 @@ const UserManagement = () => {
     try {
       setLoading(true);
       // Note: This endpoint needs to be created in the backend
-      const response = await axios.get(`http://localhost:5000/api/admin/users?search=${searchTerm}&role=${roleFilter}&status=${statusFilter}`);
+      const response = await axios.get(`${API_BASE_URL}/admin/users?search=${searchTerm}&role=${roleFilter}&status=${statusFilter}`);
       setUsers(response.data.users || []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
